@@ -1,0 +1,4 @@
+/app/payment-service/node_modules
+/app/product-service/node_modules
+/app/user-auth/node_modules
+/app/user-function/node_modules

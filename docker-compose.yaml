@@ -1,0 +1,106 @@
+services:
+  
+  # Database Service (MySQL)
+  database:
+    image: mysql:8
+    container_name: database
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: main_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user_password
+    volumes:
+      - database-data:/var/lib/mysql
+    networks:
+      - backend-network
+
+  # User Authentication Service
+  user-auth:
+    build:
+      context: ./app/user-auth
+    container_name: user-auth
+    ports:
+      - "4040:3050"  # Changed to avoid conflict
+    environment:
+      DATABASE_URL: mysql://user:user_password@database:3306/auth_db
+    depends_on:
+      - database
+    networks:
+      - backend-network
+    volumes:
+      - ./app/user-auth:/usr/src/app
+
+  # User Function Service (Profile, Cart)
+  user-function:
+    build:
+      context: ./app/user-function
+    container_name: user-function
+    ports:
+      - "4050:3050"  # Changed to avoid conflict
+    environment:
+      DATABASE_URL: mysql://user:user_password@database:3306/user_db
+    depends_on:
+      - database
+    networks:
+      - backend-network
+    volumes:
+      - ./app/user-function:/usr/src/app
+
+  # Product Service
+  product-service:
+    build:
+      context: ./app/product-service
+    container_name: product-service
+    ports:
+      - "4020:3050"  # Changed to avoid conflict
+    environment:
+      DATABASE_URL: mysql://user:user_password@database:3306/products_db
+    depends_on:
+      - database
+    networks:
+      - backend-network
+    volumes:
+      - ./app/product-service:/usr/src/app
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./app/payment-service
+    container_name: payment-service
+    ports:
+      - "4010:3050"  # Changed to avoid conflict
+    environment:
+      DATABASE_URL: mysql://user:user_password@database:3306/payment_db
+    depends_on:
+      - database
+    networks:
+      - backend-network
+    volumes:
+      - ./app/payment-service:/usr/src/app
+
+  # Nginx Reverse Proxy
+  nginx:
+    build: 
+      context: ./app/nginx
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "3050:80"  # Expose port 3050 on the host
+    volumes:
+      - ./app/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - user-auth
+      - user-function
+      - product-service
+      - payment-service
+    networks:
+      - backend-network
+
+volumes:
+  database-data:
+
+networks:
+  backend-network:
+    driver: bridge
